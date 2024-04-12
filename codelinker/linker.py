@@ -2,17 +2,29 @@ import logging
 import inspect
 import asyncio
 
+from typing import Callable
 from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
 from pydantic import TypeAdapter
 
-from .config import ModuleConfig
+from .config import CodeLinkerConfig
 from .request import OBJGenerator
 from .models import SmartFuncLabel,StructureSchema,StructuredRet
 from .utils import clip_text
 
 class CodeLinker:
-    def __init__(self, config: ModuleConfig, logger: logging.Logger = None):
+    '''CodeLinker manage the configuration and the handler of the smart functions.
+    
+    # Usage
+    ```python
+    cl = CodeLinker(config)
+    @cl.smartFunc()
+    def hello_world() -> HelloWorldSchema:
+        """Say hello to the world"""
+    ```
+    
+    '''
+    def __init__(self, config: CodeLinkerConfig, logger: logging.Logger = None):
         self.config = config
         if logger is None:
             self.logger = logging.getLogger()
@@ -37,14 +49,19 @@ class CodeLinker:
     def smartFunc(
         self,
         completions_kwargs: dict = {},
-    ):
+    ) -> Callable:
+        '''Decorator to wrap a function as a smart function.
+        The functions will be executed by language models.
+        Note that the code in function will be ignored.
+        
+        '''
         def decorator(func):
             
             name = func.__name__
             return_type = inspect.signature(func).return_annotation
             if return_type == inspect.Signature.empty:
                 raise ValueError(
-                    f"ai function {func.__name__} does not contain return type annotation!")
+                    f"Function {func.__name__} does not contain return type annotation!")
             return_type = TypeAdapter(return_type)
             ret_schema = return_type.json_schema()
             def get_ref_schema(refs:str):
@@ -90,7 +107,7 @@ class CodeLinker:
                 messages:list = [],
                 tools: list[StructureSchema] = [],
                 tool_choice:dict = None,
-                replies_format: StructureSchema = None,
+                reply_format: StructureSchema = None,
                 *args,
                 **kwargs):
                 
@@ -148,8 +165,8 @@ class CodeLinker:
                 else:
                     schemas = []
                     
-                    if replies_format is not None:                    
-                        schemas.insert(0,replies_format)
+                    if reply_format is not None:                    
+                        schemas.insert(0,reply_format)
                     
                     if tool_choice is not None:
                         # filter tools
@@ -163,7 +180,7 @@ class CodeLinker:
                         **label.completions_kwargs,
                     )
                     
-                    if replies_format is None:
+                    if reply_format is None:
                         if isinstance(returns[0],list):
                             return [ret[1:] for ret in returns] # skip the first reply
                         else:

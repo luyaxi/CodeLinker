@@ -9,11 +9,11 @@ from tenacity import AsyncRetrying, RetryError, stop_after_attempt
 from logging import Logger
 
 from ..models import StructuredRet, StructureSchema
-from ..config import ModuleConfig
+from ..config import CodeLinkerConfig
 
 
 class OBJGenerator:
-    def __init__(self, config: ModuleConfig, logger: Logger):
+    def __init__(self, config: CodeLinkerConfig, logger: Logger):
         self.config = config
         self.logger = logger
         self.chatcompletion_request_funcs = {}

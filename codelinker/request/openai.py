@@ -3,13 +3,13 @@ from asyncio import CancelledError
 from openai import AuthenticationError, PermissionDeniedError, BadRequestError, AsyncOpenAI, AsyncAzureOpenAI
 from openai.types.chat import ChatCompletion
 
-from ..config import ModuleConfig
+from ..config import CodeLinkerConfig
 
 RETRY_ERRORS = (AuthenticationError, PermissionDeniedError,
                 BadRequestError, AssertionError, CancelledError)
 
 
-async def chatcompletion_request(*, config: ModuleConfig, **kwargs):
+async def chatcompletion_request(*, config: CodeLinkerConfig, **kwargs):
     """Handle operation of OpenAI v1.x.x chat completion.
 
     This function operates OpenAI v1.x.x chat completion with provided
@@ -79,7 +79,7 @@ async def chatcompletion_request(*, config: ModuleConfig, **kwargs):
     return response
 
 
-async def embedding_request(config: ModuleConfig, text: str, **kwargs):
+async def embedding_request(config: CodeLinkerConfig, text: str, **kwargs):
     model_name = config.get_model_name(kwargs.pop("model", config.request.default_embeding_model))
     req_kwargs = config.get_apiconfig_by_model(model_name)
     

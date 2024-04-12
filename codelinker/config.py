@@ -12,7 +12,7 @@ from typing import Literal
 from pydantic import BaseModel
 from copy import deepcopy
 
-class ModuleConfig(BaseModel):
+class CodeLinkerConfig(BaseModel):
     """Module configuration model."""
     class APIConfig(BaseModel):
         api_key: str
@@ -66,13 +66,13 @@ class ModuleConfig(BaseModel):
         return self.model_dump(exclude=['api_keys', 'databases'])
     
     @classmethod
-    def from_toml(cls, toml_stream: str| os.PathLike) -> "ModuleConfig":
+    def from_toml(cls, toml_stream: str| os.PathLike) -> "CodeLinkerConfig":
         import toml
         if os.path.exists(toml_stream):
             with open(toml_stream, 'r') as f:
                 toml_stream = f.read()
         config = toml.load(toml_stream)
-        return ModuleConfig(**config)
+        return CodeLinkerConfig(**config)
     
     def get_model_name(self,model_name:str=None) -> str:
         if model_name is None:
@@ -81,7 +81,7 @@ class ModuleConfig(BaseModel):
 
         return self.request.req_name_mapping.get(model_name, model_name)
     
-    def get_apiconfig_by_model(self, model_name: str = None) -> "ModuleConfig.APIConfig":
+    def get_apiconfig_by_model(self, model_name: str = None) -> "CodeLinkerConfig.APIConfig":
         """
         Get API configuration for a model by its name.
         Return default model if the given model name is not found.
