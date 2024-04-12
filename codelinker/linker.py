@@ -190,8 +190,7 @@ class CodeLinker:
                     def run_sync_func():
                         return asyncio.run(wrapper(*args, **kwargs))
                     
-                    return self.pool.submit(run_sync_func()).result()
-                    
+                    return self.pool.submit(run_sync_func).result()
                     
                 return sync_wrapper
         return decorator

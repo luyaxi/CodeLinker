@@ -1,1 +1,4 @@
 **/__pycache__
+.vscode
+simple_sample.py
+test.py
