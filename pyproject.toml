@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "codelinker"
+version = "0.1.0"
+description = ""
+authors = ["luyaxi <luyaxi@live.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+openai = "^1.16.2"
+tenacity = "^8.2.3"
+jsonschema = "^4.21.1"
+toml = "^0.10.2"
+tiktoken = "^0.6.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
