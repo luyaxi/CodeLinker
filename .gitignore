@@ -2,3 +2,4 @@
 .vscode
 simple_sample.py
 test.py
+dist/**
