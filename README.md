@@ -1,4 +1,4 @@
-# CodeLinker: Link your code with Language Models
+# CodeLinker : Link your code with Language Models
 
 CodeLinker aims to provide functions to link your code with language models.
 It builds on top of the Pydatic library and Tool Calling abilities introduced by [OpenAI](https://platform.openai.com/docs/guides/function-calling), which enabling models to generate content according to [Json Schema](https://json-schema.org/).
