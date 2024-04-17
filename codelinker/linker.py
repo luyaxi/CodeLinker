@@ -103,13 +103,15 @@ class CodeLinker:
 
             @wraps(func)
             async def wrapper(
+                *args,
                 images:list = [],
                 messages:list = [],
                 tools: list[StructureSchema] = [],
                 tool_choice:dict = None,
                 reply_format: StructureSchema = None,
-                *args,
                 **kwargs):
+                if len(args) > 0:
+                    raise RuntimeError("Smart functions should not have positional arguments")
                 
                 label: SmartFuncLabel = getattr(func, "__smart_function_label__")
                 self.logger.log(10, f"Executing function: {label.name}")
