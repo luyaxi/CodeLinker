@@ -13,7 +13,7 @@ from logging import Logger
 
 from ..models import StructuredRet, StructureSchema
 from ..config import CodeLinkerConfig
-
+from ..utils import clip_text
 
 class OBJGenerator:
     def __init__(self, config: CodeLinkerConfig, logger: Logger):
@@ -218,7 +218,7 @@ class OBJGenerator:
         ret = await self.chatcompletion(
             messages=[{
                 "role": "user",
-                "content": f"""Your task is to fix the json string with schema errors. Remember to keep the target schema in mind. \nAvoid adding any information about this fix!\n\n# Error String\n{s}\n\n# Target Schema\n{schema}\n\n# Error Message\n{error_message}"""
+                "content": clip_text(f"""Your task is to fix the json string with schema errors. Remember to keep the target schema in mind. \nAvoid adding any information about this fix!\n\n# Error String\n{s}\n\n# Target Schema\n{schema}\n\n# Error Message\n{error_message[-1024:]}""",max_tokens=self.config.execution.max_message_tokens,clip_end=True)[0]
             }],
             schemas=StructureSchema(
                 name="json_fixes",
