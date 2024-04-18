@@ -46,6 +46,10 @@ class CodeLinkerConfig(BaseModel):
             "gpt-35-16k": "gpt-3.5-turbo-16k",
         }
 
+        save_completion: bool = False
+        # default to save in current working directory 
+        save_completion_path: str = os.getcwd()
+
     request: RequestConfig = RequestConfig()
     
     class ExectionConfig(BaseModel):

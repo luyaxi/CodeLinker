@@ -1,4 +1,7 @@
+import os
 import json
+import uuid
+import datetime
 import jsonschema
 import jsonschema.exceptions
 import importlib
@@ -135,6 +138,15 @@ class OBJGenerator:
             async for attempt in AsyncRetrying(stop=stop_after_attempt(max_retry_times), reraise=True):
                 with attempt:
                     response = await self._chatcompletion_request(**kwargs)
+                    if self.config.request.save_completion:
+                        with open(os.path.join(self.config.request.save_completion_path,
+                                               datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")+f"{uuid.uuid4().hex}.json"
+                                               ), 'w') as f:
+                            f.write(json.dumps({
+                                "request": kwargs,
+                                "response": response
+                                }, indent=4))
+                        
                     for choice in response["choices"]:
                         structuredRets = []
                         for tool_call in choice["message"]["tool_calls"]:
