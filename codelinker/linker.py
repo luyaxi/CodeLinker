@@ -104,9 +104,9 @@ class CodeLinker:
             @wraps(func)
             async def wrapper(
                 *args,
-                images:list = [],
-                messages:list = [],
-                tools: list[StructureSchema] = [],
+                images:list = None,
+                messages:list = None,
+                tools: list[StructureSchema] = None,
                 tool_choice:dict = None,
                 reply_format: StructureSchema = None,
                 **kwargs):
@@ -121,6 +121,8 @@ class CodeLinker:
                 
                 for k, v in kwargs.items():
                     kwargs[k] = str(v)
+                if messages is None:
+                    messages = []
                 messages.append(
                     {"role": "user",
                     "content": clip_text(
@@ -128,7 +130,7 @@ class CodeLinker:
                         max_tokens=self.config.execution.max_ai_functions_tokens,
                         clip_end=True)[0]
                     })
-                if len(images) > 0:
+                if images is not None and len(images) > 0:
                     messages[-1]["content"] = [
                         {
                             "type": "text",
@@ -136,7 +138,7 @@ class CodeLinker:
                         }
                     ] + images
                     
-                if len(tools) == 0:
+                if tools is None or len(tools) == 0:
                     rets = await self.objGen.chatcompletion(
                         messages=messages,
                         schemas=StructureSchema(
