@@ -5,7 +5,7 @@ import asyncio
 from typing import Callable, Any
 from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
-from pydantic import TypeAdapter
+from pydantic import TypeAdapter,BaseModel
 
 from .config import CodeLinkerConfig
 from .request import OBJGenerator
@@ -23,17 +23,15 @@ def get_ref_schema(refs: str, ret_schema):
     return schema
 
 # replace $defs and $refs
-
-
 def replace_refs(schema, ret_schema):
     if isinstance(schema, dict):
         if "$ref" in schema:
             return get_ref_schema(schema["$ref"], ret_schema)
         for k, v in schema.items():
-            schema[k] = replace_refs(v)
+            schema[k] = replace_refs(v,ret_schema)
     elif isinstance(schema, list):
         for i, v in enumerate(schema):
-            schema[i] = replace_refs(v)
+            schema[i] = replace_refs(v,ret_schema)
     return schema
 
 
@@ -159,7 +157,7 @@ class CodeLinker:
     async def exec(
         self,
         prompt: str,
-        return_type: TypeAdapter,
+        return_type: BaseModel|Any,
         request_name: str = "request",
         completions_kwargs: dict = {},
         images: list = None,
@@ -169,7 +167,7 @@ class CodeLinker:
         reasoning_format: StructureSchema = None):
         return await request(
             prompt=prompt,
-            return_type=return_type,
+            return_type=TypeAdapter(return_type),
             objGen=self.objGen,
             request_name=request_name,
             completions_kwargs=completions_kwargs,
