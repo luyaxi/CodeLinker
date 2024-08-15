@@ -1,7 +1,7 @@
 import tiktoken
 from typing import Tuple
 
-encoding = tiktoken.encoding_for_model("gpt-4")  # TODO: this is not good
+encoding = tiktoken.encoding_for_model("gpt-4o")  # TODO: this is not good
 
 def get_token_nums(text: str) -> int:
     """
