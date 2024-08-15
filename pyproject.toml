@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "codelinker"
-version = "0.2.0"
+version = "0.2.1"
 description = ""
 authors = ["luyaxi <luyaxi@live.com>"]
 readme = "README.md"
@@ -11,7 +11,7 @@ openai = "^1.16.2"
 tenacity = "^8.2.3"
 jsonschema = "^4.21.1"
 toml = "^0.10.2"
-tiktoken = "^0.6.0"
+tiktoken = "^0.7.0"
 
 
 [build-system]
