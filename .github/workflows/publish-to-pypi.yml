@@ -20,7 +20,22 @@ jobs:
     - name: Configure poetry
       run: |
         poetry config pypi-token.pypi ${{ secrets.PYPI_API_TOKEN }}
+    - name: Parse version
+      id: parse_version
+      run: |
+        VERSION=$(poetry version -s)
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
+    - name: Check if version exists on PyPI
+      id: check_version
+      run: |
+        if curl -s https://pypi.org/pypi/codelinker/$VERSION/json; then
+          echo "Version $VERSION already exists on PyPI. Skipping publish."
+          echo "exists=true" >> $GITHUB_ENV
+        else
+          echo "exists=false" >> $GITHUB_ENV
+        fi
     - name: Build and publish
+      if: env.exists == 'false'
       run: |
         poetry build
         poetry publish
