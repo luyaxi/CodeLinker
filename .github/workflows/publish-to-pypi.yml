@@ -28,11 +28,13 @@ jobs:
     - name: Check if version exists on PyPI
       id: check_version
       run: |
-        if curl -s https://pypi.org/pypi/codelinker/$VERSION/json; then
+        response=$(curl -s https://pypi.org/pypi/codelinker/$VERSION/json)
+        if echo "$response" | grep -q 'Not Found'; then
+          echo "Version $VERSION does not exist on PyPI. Proceeding with publish."
+          echo "exists=false" >> $GITHUB_ENV
+        else
           echo "Version $VERSION already exists on PyPI. Skipping publish."
           echo "exists=true" >> $GITHUB_ENV
-        else
-          echo "exists=false" >> $GITHUB_ENV
         fi
     - name: Build and publish
       if: env.exists == 'false'
