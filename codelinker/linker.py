@@ -2,7 +2,7 @@ import logging
 import inspect
 import asyncio
 
-from typing import Callable, Any
+from typing import Callable, Any, TypeVar
 from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
 from pydantic import TypeAdapter,BaseModel
@@ -12,6 +12,7 @@ from .request import OBJGenerator
 from .models import SmartFuncLabel, StructureSchema, StructuredRet
 from .utils import clip_text
 
+T = TypeVar("T")
 
 def get_ref_schema(refs: str, ret_schema):
     if refs.startswith("#/"):
@@ -157,14 +158,12 @@ class CodeLinker:
     async def exec(
         self,
         prompt: str,
-        return_type: BaseModel|Any,
+        return_type: T,
         request_name: str = "request",
         completions_kwargs: dict = {},
         images: list = None,
         messages: list = [],
-        tools: list[StructureSchema] = None,
-        tool_choice: dict = None,
-        reasoning_format: StructureSchema = None):
+        reasoning_format: StructureSchema = None) -> T:
         return await request(
             prompt=prompt,
             return_type=TypeAdapter(return_type),
@@ -173,8 +172,6 @@ class CodeLinker:
             completions_kwargs=completions_kwargs,
             images=images,
             messages=messages,
-            tools=tools,
-            tool_choice=tool_choice,
             reasoning_format=reasoning_format,
         )
 
