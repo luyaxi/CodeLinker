@@ -6,6 +6,7 @@ from typing import Callable, Any, TypeVar
 from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
 from pydantic import TypeAdapter,BaseModel
+from copy import deepcopy
 
 from .config import CodeLinkerConfig
 from .request import OBJGenerator
@@ -50,7 +51,7 @@ async def request(
 
     schema = return_type.json_schema()
     schema = replace_refs(schema, schema)
-
+    messages = deepcopy(messages)
     messages.append({"role": "user", "content": prompt})
 
     if images is not None and len(images) > 0:
