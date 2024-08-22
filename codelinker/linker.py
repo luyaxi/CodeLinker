@@ -2,11 +2,12 @@ import logging
 import inspect
 import asyncio
 
-from typing import Callable, Any, TypeVar
+from typing import Callable, Any, TypeVar, Optional
 from functools import wraps
 from concurrent.futures import ThreadPoolExecutor
 from pydantic import TypeAdapter,BaseModel
 from copy import deepcopy
+
 
 from .config import CodeLinkerConfig
 from .request import OBJGenerator
@@ -38,9 +39,9 @@ def replace_refs(schema, ret_schema):
 
 
 async def request(
-        prompt: str,
         return_type: TypeAdapter,
         objGen: OBJGenerator,
+        prompt: Optional[str] = None,
         request_name: str = "request",
         completions_kwargs: dict = {},
         images: list = None,
@@ -52,7 +53,8 @@ async def request(
     schema = return_type.json_schema()
     schema = replace_refs(schema, schema)
     messages = deepcopy(messages)
-    messages.append({"role": "user", "content": prompt})
+    if prompt is not None:
+        messages.append({"role": "user", "content": prompt})
 
     if images is not None and len(images) > 0:
         messages[-1]["content"] = [
@@ -158,8 +160,8 @@ class CodeLinker:
 
     async def exec(
         self,
-        prompt: str,
         return_type: T,
+        prompt: Optional[str] = None,
         request_name: str = "request",
         completions_kwargs: dict = {},
         images: list = None,
