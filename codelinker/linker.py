@@ -54,6 +54,18 @@ async def request(
 
     schema = return_type.json_schema()
     schema = replace_refs(schema, schema)
+    schema["description"] = return_type.__doc__ if return_type.__doc__ is not None else ""
+    
+    resolve_none_object = False
+    if schema["type"] != "object":
+        schema = {
+            "type": "object",
+            "properties": {
+                "content": schema
+            }
+        }
+        resolve_none_object = True
+    
     messages = deepcopy(messages)
     if prompt is not None:
         messages.append({"role": "user", "content": prompt})
@@ -71,12 +83,14 @@ async def request(
             messages=messages,
             schemas=StructureSchema(
                 name=request_name,
-                description=schema.pop("description", ""),
+                description=schema.pop("description"),
                 parameters=schema
             ),
             **completions_kwargs,
         )
         if isinstance(rets, StructuredRet):
+            if resolve_none_object:
+                return return_type.validate_python(rets.content["content"])
             return return_type.validate_python(rets.content)
         elif isinstance(rets, list):
             returns = []
@@ -84,12 +98,20 @@ async def request(
                 if isinstance(item, list):
                     rets = []
                     for i in item:
-                        rets.append(
-                            return_type.validate_python(i.content))
+                        if resolve_none_object:
+                            rets.append(
+                                return_type.validate_python(i.content["content"]))
+                        else:
+                            rets.append(
+                                return_type.validate_python(i.content))
                     returns.append(rets)
                 elif isinstance(item, StructuredRet):
-                    returns.append(
-                        return_type.validate_python(item.content))
+                    if resolve_none_object:
+                        returns.append(
+                            return_type.validate_python(item.content["content"]))
+                    else:
+                        returns.append(
+                            return_type.validate_python(item.content))
                 else:
                     raise ValueError("Invalid return type")
         else:

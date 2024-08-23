@@ -89,7 +89,7 @@ class OBJGenerator:
                 raise ValueError(
                     "You can't provide schemas with tools/tool_choice!")
             
-            if isinstance(schemas, StructureSchema):
+            if isinstance(schemas, StructureSchema):                    
                 kwargs["tools"] = [{
                     "type": "function",
                     "function": {
