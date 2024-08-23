@@ -241,21 +241,18 @@ class OBJGenerator:
             messages=[
             {
                 "role": "system",
-                "content": "Your task is to fix the json string with schema errors. Remember to keep the target schema in mind. Avoid adding any information about this fix!"
+                "content": "Your task is to fix the string with schema errors. Remember to keep the target schema in mind. Avoid adding any information about this fix!"
             },
             {
                 "role": "user",
-                "content": clip_text(f"""Generate Content with Correct Schema.\n# Error String\n{s}\n\n# Target Schema\n{schema}\n\n# Error Message\n{error_message[-1024:]}""",max_tokens=self.config.execution.max_message_tokens,clip_end=True)[0]
+                "content": clip_text(f"""Generate Content with Correct Schema.\n# Error String\n{s}\n# Error Message\n{error_message[-1024:]}""",max_tokens=self.config.execution.max_message_tokens,clip_end=True)[0]
             }],
             schemas=StructureSchema(**schema),
             schema_validation=True,
             dynamic_json_fix=False,
             max_retry_times=0,
         )
-        fixed = json.loads(ret.content)
-        self.logger.debug("Fixing Thought:\n"+fixed["thought"])
-
-        return json.loads(fixed["corrected_string"])
+        return ret.content
 
     async def schema_valiation(
             self,
