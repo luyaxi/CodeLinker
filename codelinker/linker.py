@@ -46,15 +46,13 @@ async def request(
         completions_kwargs: dict = {},
         images: list = None,
         messages: list = [],
-        tools: list[StructureSchema] = None,
-        tool_choice: dict = None,
         reasoning_format: StructureSchema = None,
         schema_validation: bool = None,
         dynamic_json_fix: bool = None,):
 
     schema = return_type.json_schema()
     schema = replace_refs(schema, schema)
-    schema["description"] = return_type.__doc__ if return_type.__doc__ is not None else ""
+    description = return_type.__doc__ if return_type.__doc__ is not None else ""
     
     resolve_none_object = False
     if schema["type"] != "object":
@@ -78,75 +76,58 @@ async def request(
             }
         ] + images
 
-    if tools is None or len(tools) == 0:
-        rets = await objGen.chatcompletion(
-            messages=messages,
-            schemas=StructureSchema(
+    if reasoning_format is not None:
+        schemas = [
+            reasoning_format,
+            StructureSchema(
                 name=request_name,
-                description=schema.pop("description"),
+                description=description,
                 parameters=schema
-            ),
-            **completions_kwargs,
-        )
-        if isinstance(rets, StructuredRet):
-            if resolve_none_object:
-                return return_type.validate_python(rets.content["content"])
-            return return_type.validate_python(rets.content)
-        elif isinstance(rets, list):
-            returns = []
-            for item in rets:
-                if isinstance(item, list):
-                    rets = []
-                    for i in item:
-                        if resolve_none_object:
-                            rets.append(
-                                return_type.validate_python(i.content["content"]))
-                        else:
-                            rets.append(
-                                return_type.validate_python(i.content))
-                    returns.append(rets)
-                elif isinstance(item, StructuredRet):
-                    if resolve_none_object:
-                        returns.append(
-                            return_type.validate_python(item.content["content"]))
-                    else:
-                        returns.append(
-                            return_type.validate_python(item.content))
-                else:
-                    raise ValueError("Invalid return type")
-        else:
-            raise ValueError("Invalid return type")
-        return returns
-
+            )
+        ]
     else:
-        schemas = []
-
-        if reasoning_format is not None:
-            schemas.insert(0, reasoning_format)
-
-        if tool_choice is not None:
-            # filter tools
-            tools = [tool for tool in tools if tool.name ==
-                     tool_choice["function"]["name"]]
-
-        schemas.append(tools)
-
-        returns = await objGen.chatcompletion(
-            messages=messages,
-            schemas=schemas,
-            schema_validation=schema_validation,
-            dynamic_json_fix=dynamic_json_fix,
-            **completions_kwargs,
+        schemas = StructureSchema(
+            name=request_name,
+            description=description,
+            parameters=schema
         )
-
-        if reasoning_format is None:
-            if isinstance(returns[0], list):
-                # skip the first reply
-                return [ret[1:] for ret in returns]
+    
+    rets = await objGen.chatcompletion(
+        messages=messages,
+        schemas=schemas,
+        schema_validation=schema_validation,
+        dynamic_json_fix=dynamic_json_fix,
+        **completions_kwargs,
+    )
+    if isinstance(rets, StructuredRet):
+        if resolve_none_object:
+            return return_type.validate_python(rets.content["content"])
+        return return_type.validate_python(rets.content)
+    elif isinstance(rets, list):
+        returns = []
+        for item in rets:
+            if isinstance(item, list):
+                rets = []
+                for i in item:
+                    if resolve_none_object:
+                        rets.append(
+                            return_type.validate_python(i.content["content"]))
+                    else:
+                        rets.append(
+                            return_type.validate_python(i.content))
+                returns.append(rets)
+            elif isinstance(item, StructuredRet):
+                if resolve_none_object:
+                    returns.append(
+                        return_type.validate_python(item.content["content"]))
+                else:
+                    returns.append(
+                        return_type.validate_python(item.content))
             else:
-                return returns[1:]
-        else:
-            return returns
+                raise ValueError("Invalid return type")
+    else:
+        raise ValueError("Invalid return type")
+    return returns
 
 
 class CodeLinker:
@@ -270,8 +251,6 @@ class CodeLinker:
                 *args,
                 images: list = None,
                 messages: list = [],
-                tools: list[StructureSchema] = None,
-                tool_choice: dict = None,
                 reasoning_format: StructureSchema = None,
                 **kwargs):
 
@@ -304,8 +283,6 @@ class CodeLinker:
                     messages=messages,
                     images=images,
                     completions_kwargs=label.completions_kwargs,
-                    tools=tools,
-                    tool_choice=tool_choice,
                     reasoning_format=reasoning_format,
                 )
 
