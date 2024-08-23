@@ -38,9 +38,6 @@ class OBJGenerator:
 
         # filter messages with empty content
         messages = list(filter(lambda x: len(x["content"]) > 0, messages))
-
-        if isinstance(schemas, StructureSchema):
-            schemas = [schemas]
             
         max_retry_times = self.config.max_retry_times if max_retry_times is None else max_retry_times
         schema_validation = self.config.request.schema_validation if schema_validation is None else schema_validation
@@ -77,7 +74,7 @@ class OBJGenerator:
         self,
         *,
         messages: list[dict],
-        schemas: list[StructureSchema | list[StructureSchema]],
+        schemas: StructureSchema | list[StructureSchema | list[StructureSchema]],
         schema_validation: bool,
         dynamic_json_fix: bool,
         max_retry_times: int,
@@ -91,51 +88,72 @@ class OBJGenerator:
             if "tools" in kwargs or "tool_choice" in kwargs:
                 raise ValueError(
                     "You can't provide schemas with tools/tool_choice!")
-
-            req_template = {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-
-            for schema in schemas:
-                if isinstance(schema, StructureSchema):
-                    # add schema to the template
-                    req_template["properties"][schema.name] = schema.parameters
-                    req_template["required"].append(schema.name)
-                elif isinstance(schema, list):
-                    combine_name = "arg"+str(schemas.index(schema))
-                    req_template["properties"][combine_name] = {
-                        "oneOf": [
-                            {
-                                "type": "object",
-                                "description": s.description,
-                                "properties": {
-                                    s.name: s.parameters
-                                },
-                                "required": [s.name]
-                            }
-                            for s in schema
-                        ]
+            
+            if isinstance(schemas, StructureSchema):
+                kwargs["tools"] = [{
+                    "type": "function",
+                    "function": {
+                        "name": schemas.name,
+                        "description": schemas.description,
+                        "parameters": schemas.parameters
                     }
-                    req_template["required"].append(combine_name)
-
-            constructed_schema = {
-                "name": "structuredRet",
-                "description": "Follow the schema",
-                "parameters": req_template
-            }
-
-            kwargs["tools"] = [{
-                "type": "function",
-                "function": constructed_schema
-            }]
-            kwargs["tool_choice"] = {
-                "type": "function",
-                "function": {
-                    "name": "structuredRet"
+                }]
+                kwargs["tool_choice"] = [{
+                    "type": "function",
+                    "function": {"name": schemas.name}
+                }]
+                
+                constructed_schema = {
+                    "name": schemas.name,
+                    "description": schemas.description,
+                    "parameters": schemas.parameters
                 }
-            }
+                
+            elif isinstance(schemas, list):
+                req_template = {
+                    "type": "object",
+                    "properties": {},
+                    "required": []
+                }
+
+                for schema in schemas:
+                    if isinstance(schema, StructureSchema):
+                        # add schema to the template
+                        req_template["properties"][schema.name] = schema.parameters
+                        req_template["required"].append(schema.name)
+                    elif isinstance(schema, list):
+                        combine_name = "arg"+str(schemas.index(schema))
+                        req_template["properties"][combine_name] = {
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "description": s.description,
+                                    "properties": {
+                                        s.name: s.parameters
+                                    },
+                                    "required": [s.name]
+                                }
+                                for s in schema
+                            ]
+                        }
+                        req_template["required"].append(combine_name)
+
+                constructed_schema = {
+                    "name": "structuredRet",
+                    "description": "Follow the schema",
+                    "parameters": req_template
+                }
+
+                kwargs["tools"] = [{
+                    "type": "function",
+                    "function": constructed_schema
+                }]
+                kwargs["tool_choice"] = {
+                    "type": "function",
+                    "function": {
+                        "name": "structuredRet"
+                    }
+                }
 
         kwargs["messages"] = messages
 
