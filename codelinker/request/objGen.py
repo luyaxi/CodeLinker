@@ -26,7 +26,7 @@ class OBJGenerator:
                              messages: list[dict],
                              schemas: StructureSchema | list[StructureSchema |
                                                              list[StructureSchema]] = None,
-                             schema_validation: bool = True,
+                             schema_validation: bool = None,
                              dynamic_json_fix: bool = None,
                              max_retry_times: int = None,
                              **kwargs) -> StructuredRet | list[StructuredRet] | list[list[StructuredRet]]:
@@ -41,6 +41,11 @@ class OBJGenerator:
 
         if isinstance(schemas, StructureSchema):
             schemas = [schemas]
+            
+        max_retry_times = self.config.max_retry_times if max_retry_times is None else max_retry_times
+        schema_validation = self.config.request.schema_validation if schema_validation is None else schema_validation
+        dynamic_json_fix = self.config.request.dynamic_json_fix if dynamic_json_fix is None else dynamic_json_fix
+        
         match request_format:
 
             case "tool_call":
@@ -69,13 +74,12 @@ class OBJGenerator:
         self,
         *,
         messages: list[dict],
-        schemas: list[StructureSchema | list[StructureSchema]] = None,
-        schema_validation: bool = True,
-        dynamic_json_fix: bool = None,
-        max_retry_times: int = None,
+        schemas: list[StructureSchema | list[StructureSchema]],
+        schema_validation: bool,
+        dynamic_json_fix: bool,
+        max_retry_times: int,
         **kwargs,
     ) -> list[StructuredRet] | list[list[StructuredRet]]:
-        max_retry_times = self.config.max_retry_times if max_retry_times is None else max_retry_times
         
         req_template = None
 
@@ -154,7 +158,7 @@ class OBJGenerator:
                             if tool_call["type"] != "function":
                                 continue
 
-                            if schema_validation and self.config.request.schema_validation:
+                            if schema_validation:
                                 # refine the tool calls
                                 d = await self.schema_valiation(
                                     s=tool_call["function"]["arguments"],
@@ -183,8 +187,7 @@ class OBJGenerator:
                             rets.append(structuredRets)
 
         except RetryError as e:
-            self.logger.log(40,
-                       f"Chatcompletion Error: Retry failed\n{e}")
+            self.logger.error(f"Chatcompletion Error: Retry failed\n{e}")
             raise e
         return rets
 
@@ -212,8 +215,7 @@ class OBJGenerator:
 
     async def dynamic_json_fixes(self, s, schema, messages: list = [], error_message: str = None) -> dict:
 
-        self.logger.log(20,
-                   f'Schema Validation on string:\n{s}\nfor schema {schema["name"]} failed, trying to fix it...')
+        self.logger.warn(f'Schema Validation on string:\n{s}\nfor schema {schema["name"]} failed, trying to fix it...')
 
         ret = await self.chatcompletion(
             messages=[{
@@ -242,7 +244,7 @@ class OBJGenerator:
             max_retry_times=0,
         )
         fixed = json.loads(ret.content)
-        self.logger.log(20, "Fixing Thought:\n"+fixed["thought"])
+        self.logger.debug("Fixing Thought:\n"+fixed["thought"])
 
         return json.loads(fixed["corrected_string"])
 
@@ -254,7 +256,7 @@ class OBJGenerator:
             dynamic_json_fix = None) -> dict:
         dynamic_json_fix = self.config.request.dynamic_json_fix if dynamic_json_fix is None else dynamic_json_fix
         if dynamic_json_fix == False:
-            self.logger.log(30,"Dynamic json fix is disabled, raise error if schema validation failed.")
+            self.logger.debug("Dynamic json fix is disabled, raise error if schema validation failed.")
         
         # load string as instance
         try:
@@ -291,6 +293,6 @@ class OBJGenerator:
             else:
                 raise e
         except Exception as e:
-            self.logger.log(40, "Schema Validation Error:\n"+str(e))
+            self.logger.error("Schema Validation Error:\n"+str(e))
 
         return d

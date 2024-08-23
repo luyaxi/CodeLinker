@@ -48,7 +48,9 @@ async def request(
         messages: list = [],
         tools: list[StructureSchema] = None,
         tool_choice: dict = None,
-        reasoning_format: StructureSchema = None):
+        reasoning_format: StructureSchema = None,
+        schema_validation: bool = None,
+        dynamic_json_fix: bool = None,):
 
     schema = return_type.json_schema()
     schema = replace_refs(schema, schema)
@@ -110,6 +112,8 @@ async def request(
         returns = await objGen.chatcompletion(
             messages=messages,
             schemas=schemas,
+            schema_validation=schema_validation,
+            dynamic_json_fix=dynamic_json_fix,
             **completions_kwargs,
         )
 
@@ -166,7 +170,9 @@ class CodeLinker:
         completions_kwargs: dict = {},
         images: list = None,
         messages: list = [],
-        reasoning_format: StructureSchema = None) -> T:
+        reasoning_format: StructureSchema = None,
+        schema_validation: bool = None,
+        dynamic_json_fix: bool = None) -> T:
         return await request(
             prompt=prompt,
             return_type=TypeAdapter(return_type),
@@ -176,6 +182,8 @@ class CodeLinker:
             images=images,
             messages=messages,
             reasoning_format=reasoning_format,
+            schema_validation=schema_validation,
+            dynamic_json_fix=dynamic_json_fix,
         )
 
 
