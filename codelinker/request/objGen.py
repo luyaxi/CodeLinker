@@ -98,10 +98,10 @@ class OBJGenerator:
                         "parameters": schemas.parameters
                     }
                 }]
-                kwargs["tool_choice"] = [{
+                kwargs["tool_choice"] = {
                     "type": "function",
                     "function": {"name": schemas.name}
-                }]
+                }
                 
                 constructed_schema = {
                     "name": schemas.name,
@@ -139,7 +139,7 @@ class OBJGenerator:
                         req_template["required"].append(combine_name)
 
                 constructed_schema = {
-                    "name": "structuredRet",
+                    "name": "structuredRets",
                     "description": "Follow the schema",
                     "parameters": req_template
                 }
@@ -151,7 +151,7 @@ class OBJGenerator:
                 kwargs["tool_choice"] = {
                     "type": "function",
                     "function": {
-                        "name": "structuredRet"
+                        "name": "structuredRets"
                     }
                 }
 
@@ -190,18 +190,17 @@ class OBJGenerator:
                             else:
                                 d = json.loads(
                                     tool_call["function"]["arguments"])
-
-                            for k, v in d.items():
+                            if constructed_schema["name"] == "structuredRets":
+                                for k, v in d.items():
+                                    structuredRets.append(StructuredRet(
+                                        name=k,
+                                        content=v
+                                    ))
+                            else:
                                 structuredRets.append(StructuredRet(
-                                    name=k,
-                                    content=v
+                                    name=constructed_schema["name"],
+                                    content=d
                                 ))
-                        # TODO: Find a better way to insert content
-                        # if len(choice["message"]["content"].strip()) > 0:
-                        #     structuredRets.append(StructuredRet(
-                        #         name="content",
-                        #         content=choice["message"]["content"]
-                        #     ))
                         if len(structuredRets) == 1:
                             rets.append(structuredRets[0])
                         else:
