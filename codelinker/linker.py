@@ -41,6 +41,7 @@ def replace_refs(schema, ret_schema):
 async def request(
         return_type: TypeAdapter,
         objGen: OBJGenerator,
+        description: str = "",
         prompt: Optional[str] = None,
         request_name: str = "request",
         completions_kwargs: dict = {},
@@ -52,7 +53,6 @@ async def request(
 
     schema = return_type.json_schema()
     schema = replace_refs(schema, schema)
-    description = return_type.__doc__ if return_type.__doc__ is not None else ""
     
     resolve_none_object = False
     if schema["type"] != "object":
@@ -179,6 +179,7 @@ class CodeLinker:
         return await request(
             prompt=prompt,
             return_type=TypeAdapter(return_type),
+            description=return_type.__doc__ if isinstance(return_type, BaseModel) else "",
             objGen=self.objGen,
             request_name=request_name,
             completions_kwargs=completions_kwargs,
@@ -206,6 +207,9 @@ class CodeLinker:
             if return_type == inspect.Signature.empty:
                 raise ValueError(
                     f"Function {func.__name__} does not contain return type annotation!")
+                
+            # get function description from return's schema
+            description =  return_type.__doc__ if isinstance(return_type, BaseModel) else ""
             return_type = TypeAdapter(return_type)
             ret_schema = return_type.json_schema()
 
@@ -231,9 +235,8 @@ class CodeLinker:
                 return schema
 
             ret_schema = replace_refs(ret_schema)
+            description += ret_schema.pop("description", "")
 
-            # get function description from return's schema
-            description = ret_schema.pop("description", "")
             prompt = func.__doc__
 
             label = SmartFuncLabel(
