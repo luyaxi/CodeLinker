@@ -46,6 +46,9 @@ class OBJGenerator:
         schema_validation = self.config.request.schema_validation if schema_validation is None else schema_validation
         dynamic_json_fix = self.config.request.dynamic_json_fix if dynamic_json_fix is None else dynamic_json_fix
         
+        if not dynamic_json_fix:
+            self.logger.debug("Warning: dynamic json fix is disabled, raise error if schema validation failed.")
+        
         match request_format:
 
             case "tool_call":
@@ -218,27 +221,16 @@ class OBJGenerator:
         self.logger.warn(f'Schema Validation on string:\n{s}\nfor schema {schema["name"]} failed, trying to fix it...')
 
         ret = await self.chatcompletion(
-            messages=[{
+            messages=[
+            {
+                "role": "system",
+                "content": "Your task is to fix the json string with schema errors. Remember to keep the target schema in mind. Avoid adding any information about this fix!"
+            },
+            {
                 "role": "user",
-                "content": clip_text(f"""Your task is to fix the json string with schema errors. Remember to keep the target schema in mind. \nAvoid adding any information about this fix!\n\n# Error String\n{s}\n\n# Target Schema\n{schema}\n\n# Error Message\n{error_message[-1024:]}""",max_tokens=self.config.execution.max_message_tokens,clip_end=True)[0]
+                "content": clip_text(f"""Generate Content with Correct Schema.\n# Error String\n{s}\n\n# Target Schema\n{schema}\n\n# Error Message\n{error_message[-1024:]}""",max_tokens=self.config.execution.max_message_tokens,clip_end=True)[0]
             }],
-            schemas=StructureSchema(
-                name="json_fixes",
-                description="Fix the error in json string",
-                parameters={
-                    "type": "object",
-                    "properties": {
-                        "thought": {
-                            "type": "string",
-                            "description": "What's wrong with the json string? Describe possible errors in detail."
-                        },
-                        "corrected_string": {
-                            "type": "string",
-                            "description": "Corrected json string."
-                        }
-                    },
-                }
-            ),
+            schemas=StructureSchema(**schema),
             schema_validation=True,
             dynamic_json_fix=False,
             max_retry_times=0,
@@ -254,10 +246,6 @@ class OBJGenerator:
             schema: dict,
             messages: list[dict],
             dynamic_json_fix = None) -> dict:
-        dynamic_json_fix = self.config.request.dynamic_json_fix if dynamic_json_fix is None else dynamic_json_fix
-        if dynamic_json_fix == False:
-            self.logger.debug("Dynamic json fix is disabled, raise error if schema validation failed.")
-        
         # load string as instance
         try:
             d = json.loads(s)
