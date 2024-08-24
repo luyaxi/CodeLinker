@@ -47,3 +47,5 @@ The function wrapped by `cl.smartFunc` will have extra key-world arguments that 
 
 from .linker import CodeLinker
 from .config import CodeLinkerConfig
+from .events import EventSink, EventProcessor
+from .models import Channels, ChannelTag
