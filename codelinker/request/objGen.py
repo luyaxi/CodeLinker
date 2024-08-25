@@ -23,22 +23,23 @@ class OBJGenerator:
         self.chatcompletion_request_funcs = {}
         
         if config.request.use_cache:
-            self.logger.warn("use_cache is enabled, loading completions from cache...")
+            self.logger.warning("use_cache is enabled, loading completions from cache...")
             self.hash2files = {}
             for file in glob.glob(os.path.join(config.request.save_completions_path, "*.json")):
                 with open(file, 'r') as f:
                     data = json.load(f)
                     self.hash2files[hash(json.dumps(data["request"],sort_keys=True))] = file
-            self.logger.warn("Cache loaded and enabled, which may cause unexpected behavior.")
+            self.logger.warning("Cache loaded and enabled, which may cause unexpected behavior.")
 
     async def _chatcompletion_request(self, *, request_lib: Literal["openai",] = None, **kwargs) -> dict:
         if self.config.request.use_cache:
             hash_ = hash(json.dumps(kwargs,sort_keys=True))
+            self.logger.debug(f"Request hash: {hash_}")
             if hash_ in self.hash2files:
                 with open(self.hash2files[hash_], 'r') as f:
                     data = json.load(f)
                     if data["request"] == kwargs:
-                        self.logger.debug(f"Cache hit file {self.hash2files[hash_]}, return cached completions.")
+                        self.logger.warning(f"Cache hit file {self.hash2files[hash_]}, return cached completions.")
                         return data["response"]
                                         
 
