@@ -38,6 +38,7 @@ class OBJGenerator:
                 with open(self.hash2files[hash_], 'r') as f:
                     data = json.load(f)
                     if data["request"] == kwargs:
+                        self.logger.debug(f"Cache hit file {self.hash2files[hash_]}, return cached completions.")
                         return data["response"]
                                         
 
