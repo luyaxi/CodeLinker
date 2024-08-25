@@ -156,6 +156,18 @@ class EventSink:
 
     def get_tag_lock(self, tag: ChannelTag):
         return self.tag2lock[tag]
+    
+    def unlisten(self, func: Callable):
+        if func in self.func2wrapper:
+            wrapper = self.func2wrapper[func]
+            for tag,subs in self.tag2subscriber.items():
+                if wrapper in subs:
+                    subs.remove(wrapper)
+                    self.logger.debug(
+                        f"{get_func_full_name(func)} is unregistered from tag {tag}.")
+        else:
+            self.logger.debug(
+                f"{get_func_full_name(func)} is not registered.")
 
     def listen(self, source: str, tags: Optional[ChannelTag | Iterable[ChannelTag]] = None, max_emit_time: int = None):
         """listen decorator, callback the registered function when the listened tag is received"""

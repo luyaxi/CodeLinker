@@ -24,6 +24,9 @@ class EventProcessor:
     def listen(self, tags: ChannelTag | Iterable[ChannelTag] = None, max_emit_time: int = None):
         return self.sink.listen(source=self.name, tags=tags, max_emit_time=max_emit_time)
 
+    def unlisten(self, func: callable):
+        self.sink.unlisten(func)
+    
     def wait(self, tags: ChannelTag | Iterable[ChannelTag]):
         return self.sink.wait(tags)
 
