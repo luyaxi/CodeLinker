@@ -1,5 +1,6 @@
 import os
 import json
+import glob
 import uuid
 import datetime
 import jsonschema
@@ -20,6 +21,59 @@ class OBJGenerator:
         self.config = config
         self.logger = logger
         self.chatcompletion_request_funcs = {}
+        
+        if config.request.use_cache:
+            self.logger.warn("use_cache is enabled, loading completions from cache...")
+            self.hash2files = {}
+            for file in glob.glob(os.path.join(config.request.save_completions_path, "*.json")):
+                with open(file, 'r') as f:
+                    data = json.load(f)
+                    self.hash2files[hash(json.dumps(data["request"],sort_keys=True))] = file
+            self.logger.warn("Cache loaded and enabled, which may cause unexpected behavior.")
+
+    async def _chatcompletion_request(self, *, request_lib: Literal["openai",] = None, **kwargs) -> dict:
+        if self.config.request.use_cache:
+            hash_ = hash(json.dumps(kwargs,sort_keys=True))
+            if hash_ in self.hash2files:
+                with open(self.hash2files[hash_], 'r') as f:
+                    data = json.load(f)
+                    if data["request"] == kwargs:
+                        return data["response"]
+                                        
+
+        request_lib = request_lib if request_lib is not None else self.config.request.lib
+        response = await self._get_chatcompletion_request_func(request_lib)(config=self.config,**kwargs)
+
+        
+        if self.config.request.save_completions:
+            os.makedirs(self.config.request.save_completions_path, exist_ok=True)
+            with open(os.path.join(self.config.request.save_completions_path,
+                                    datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")+f"{uuid.uuid4().hex}.json"
+                                    ), 'w') as f:
+                json.dump({
+                    "request": kwargs,
+                    "response": response
+                    }, f, indent=4)
+        
+
+        return response
+
+    def _get_chatcompletion_request_func(self, request_type: str):
+        if request_type not in self.chatcompletion_request_funcs:
+            module = importlib.import_module(
+                f'.{request_type}', 'codelinker.request')
+            self.chatcompletion_request_funcs[request_type] = getattr(
+                module, 'chatcompletion_request')
+        return self.chatcompletion_request_funcs[request_type]
+
+    def _get_embedding_request_func(self, request_type: str):
+        if request_type not in self.chatcompletion_request_funcs:
+            module = importlib.import_module(
+                f'.{request_type}', 'codelinker.request')
+            self.chatcompletion_request_funcs[request_type] = getattr(
+                module, 'embedding_request')
+        return self.chatcompletion_request_funcs[request_type]
+
 
     async def chatcompletion(self,
                              *,
@@ -174,16 +228,7 @@ class OBJGenerator:
             async for attempt in AsyncRetrying(stop=stop_after_attempt(max_retry_times), reraise=True):
                 with attempt:
                     response = await self._chatcompletion_request(**kwargs)
-                    if self.config.request.save_completions:
-                        os.makedirs(self.config.request.save_completions_path, exist_ok=True)
-                        with open(os.path.join(self.config.request.save_completions_path,
-                                               datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")+f"{uuid.uuid4().hex}.json"
-                                               ), 'w') as f:
-                            f.write(json.dumps({
-                                "request": kwargs,
-                                "response": response
-                                }, indent=4))
-                        
+                    
                     for choice in response["choices"]:
                         structuredRets = []
                         for tool_call in choice["message"]["tool_calls"]:
@@ -222,27 +267,6 @@ class OBJGenerator:
             raise e
         return rets
 
-    async def _chatcompletion_request(self, *, request_lib: Literal["openai",] = None, **kwargs) -> dict:
-        request_lib = request_lib if request_lib is not None else self.config.request.lib
-        response = await self._get_chatcompletion_request_func(request_lib)(config=self.config,**kwargs)
-
-        return response
-
-    def _get_chatcompletion_request_func(self, request_type: str):
-        if request_type not in self.chatcompletion_request_funcs:
-            module = importlib.import_module(
-                f'.{request_type}', 'codelinker.request')
-            self.chatcompletion_request_funcs[request_type] = getattr(
-                module, 'chatcompletion_request')
-        return self.chatcompletion_request_funcs[request_type]
-
-    def _get_embedding_request_func(self, request_type: str):
-        if request_type not in self.chatcompletion_request_funcs:
-            module = importlib.import_module(
-                f'.{request_type}', 'codelinker.request')
-            self.chatcompletion_request_funcs[request_type] = getattr(
-                module, 'embedding_request')
-        return self.chatcompletion_request_funcs[request_type]
 
     async def dynamic_json_fixes(self, s, schema, messages: list = [], error_message: str = None) -> dict:
 

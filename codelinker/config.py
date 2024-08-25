@@ -46,6 +46,7 @@ class CodeLinkerConfig(BaseModel):
             "gpt-35-16k": "gpt-3.5-turbo-16k",
         }
 
+        use_cache: bool = False
         save_completions: bool = False
         # default to save in current working directory 
         save_completions_path: str = os.path.join(os.getcwd(),"cache","completions")
