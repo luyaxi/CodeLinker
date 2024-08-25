@@ -50,20 +50,38 @@ async def request(
         reasoning_format: StructureSchema = None,
         schema_validation: bool = None,
         dynamic_json_fix: bool = None,):
-
-    schema = return_type.json_schema()
-    schema = replace_refs(schema, schema)
-    
     resolve_none_object = False
-    if schema["type"] != "object":
-        schema = {
-            "type": "object",
-            "properties": {
-                "content": schema
+    schema = return_type.json_schema()
+    if schema == TypeAdapter(str).json_schema():
+        schemas = None
+    else:
+        schema = replace_refs(schema, schema)
+        
+        if schema["type"] != "object":
+            schema = {
+                "type": "object",
+                "properties": {
+                    "content": schema
+                }
             }
-        }
-        resolve_none_object = True
+            resolve_none_object = True
     
+        if reasoning_format is not None:
+            schemas = [
+                reasoning_format,
+                StructureSchema(
+                    name=request_name,
+                    description=description,
+                    parameters=schema
+                )
+            ]
+        else:
+            schemas = StructureSchema(
+                name=request_name,
+                description=description,
+                parameters=schema
+            )
+            
     messages = deepcopy(messages)
     if prompt is not None:
         messages.append({"role": "user", "content": prompt})
@@ -76,21 +94,6 @@ async def request(
             }
         ] + images
 
-    if reasoning_format is not None:
-        schemas = [
-            reasoning_format,
-            StructureSchema(
-                name=request_name,
-                description=description,
-                parameters=schema
-            )
-        ]
-    else:
-        schemas = StructureSchema(
-            name=request_name,
-            description=description,
-            parameters=schema
-        )
     
     rets = await objGen.chatcompletion(
         messages=messages,
@@ -167,7 +170,7 @@ class CodeLinker:
 
     async def exec(
         self,
-        return_type: T,
+        return_type: T = str,
         prompt: Optional[str] = None,
         request_name: str = "request",
         completions_kwargs: dict = {},

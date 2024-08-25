@@ -24,7 +24,7 @@ class OBJGenerator:
     async def chatcompletion(self,
                              *,
                              messages: list[dict],
-                             schemas: StructureSchema | list[StructureSchema |
+                             schemas: None | StructureSchema | list[StructureSchema |
                                                              list[StructureSchema]] = None,
                              schema_validation: bool = None,
                              dynamic_json_fix: bool = None,
@@ -35,6 +35,8 @@ class OBJGenerator:
                 kwargs.pop(k)
 
         request_format = kwargs.pop("request_format", self.config.request.format)
+        if schemas is None:
+            request_format = "messages"
 
         # filter messages with empty content
         messages = list(filter(lambda x: len(x["content"]) > 0, messages))
@@ -47,7 +49,16 @@ class OBJGenerator:
             self.logger.debug("Warning: dynamic json fix is disabled, raise error if schema validation failed.")
         
         match request_format:
-
+            case "messages":
+                structuredRets = []
+                async for attempt in AsyncRetrying(stop=stop_after_attempt(max_retry_times), reraise=True):
+                    with attempt:
+                        response = await self._chatcompletion_request(messages=messages,**kwargs)
+                        for choice in response["choices"]:
+                            structuredRets.append(StructuredRet(
+                                name="response",
+                                content=choice["message"]["content"]
+                            ))
             case "tool_call":
                 structuredRets = await self._chatcompletion_with_tool_call(
                     messages=messages,
