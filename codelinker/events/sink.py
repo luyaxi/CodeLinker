@@ -228,7 +228,7 @@ class EventSink:
             # first check whether there are same function in the scheduled list
             if func in self.scheduled_funcs:
                 self.logger.debug(
-                    f"{get_func_full_name(func)} is already scheduled and will be skipped.")
+                    f"{get_func_full_name(self.wrapper2func[func])} is already scheduled and will be skipped.")
                 continue
 
             # add the scheduled callback to the scheduled list
@@ -236,6 +236,6 @@ class EventSink:
                 tags), called_func=func, callback_args=callback_args))
             self.scheduled_funcs.add(func)
             self.logger.debug(
-                f"Schedule {get_func_full_name(func)} to be triggered by tags {tags} at time {self.time}.")
+                f"Schedule {get_func_full_name(self.wrapper2func[func])} to be triggered by tags {tags} at time {self.time}.")
 
 
