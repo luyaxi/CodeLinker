@@ -45,6 +45,7 @@ class EventSink:
 
     def update_time(self, time: str):
         self.time = time
+        return self.time
 
     def init(self, *args, **kwargs):
         """Init event sink"""
@@ -215,18 +216,21 @@ class EventSink:
             return func
         return decorator
 
-    def add(self, tags: ChannelTag | Iterable[ChannelTag],  content: str | list[str], source: str = "system", silent: bool = False, callback_args: dict = {}):
+    def add(self, tags: ChannelTag | Iterable[ChannelTag],  content: str | list[str], source: str = "system", silent: bool = False, callback_args: dict = {}) -> list[SEvent]:
         if isinstance(content, str):
             content = [content]
         if isinstance(tags, ChannelTag):
             tags = [tags]
 
+        events = []
+        
         for c in content:
             event = SEvent(source=source, time=self.time, tags=tags, content=c)
             self.logger.info(f"{event}")
             self.all_events.append(event)
+            events.append(event)
         if silent:
-            return
+            return events
 
         # schedule callback execution
         candidate_funcs = []
@@ -249,5 +253,7 @@ class EventSink:
             self.scheduled_funcs.add(func)
             self.logger.debug(
                 f"Schedule {get_func_full_name(self.wrapper2func[func])} to be triggered by tags {tags} at time {self.time}.")
+            
+        return events
 
 

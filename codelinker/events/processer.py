@@ -15,17 +15,17 @@ class EventProcessor:
         return self.sink.get_tag_lock(tag)
 
     def update_time(self, time: str):
-        self.sink.update_time(time)
+        return self.sink.update_time(time)
 
     def add(self, tags: ChannelTag | Iterable[ChannelTag], content: str | Iterable[str], silent: bool = False):
-        self.sink.add(content=content, tags=tags,
+        return self.sink.add(content=content, tags=tags,
                       source=self.name, silent=silent)
 
     def listen(self, tags: ChannelTag | Iterable[ChannelTag] = None, max_emit_time: int = None):
         return self.sink.listen(source=self.name, tags=tags, max_emit_time=max_emit_time)
 
     def unlisten(self, func: callable):
-        self.sink.unlisten(func)
+        return self.sink.unlisten(func)
     
     def wait(self, tags: ChannelTag | Iterable[ChannelTag]):
         return self.sink.wait(tags)
