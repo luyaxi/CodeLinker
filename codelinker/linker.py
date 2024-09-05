@@ -173,12 +173,15 @@ class CodeLinker:
         return_type: T = str,
         prompt: Optional[str] = None,
         request_name: str = "request",
+        model: Optional[str] = None,
         completions_kwargs: dict = {},
         images: list = None,
         messages: list = [],
         reasoning_format: StructureSchema = None,
         schema_validation: bool = None,
         dynamic_json_fix: bool = None) -> T:
+        if model:
+            completions_kwargs["model"] = model
         return await request(
             prompt=prompt,
             return_type=TypeAdapter(return_type),
