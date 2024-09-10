@@ -1,6 +1,7 @@
 from codelinker.models import SEvent, ChannelTag
 from .sink import EventSink
-from typing import Iterable, Literal
+from typing import Iterable, Literal, Callable
+from functools import partial
 
 class EventProcessor:
     def __init__(self, name: str, sink: EventSink):
@@ -30,7 +31,7 @@ class EventProcessor:
     def wait(self, tags: ChannelTag | Iterable[ChannelTag]):
         return self.sink.wait(tags)
 
-    def gather(self, tags: ChannelTag | Iterable[ChannelTag] | None = None, return_fmt: Literal['str', 'messages'] = 'str') -> str | Iterable[dict]:
+    def gather(self, tags: ChannelTag | Iterable[ChannelTag] | None = None, return_dumper: Callable|Literal['str','json','identity'] = 'str') -> Iterable[dict]:
         def tag_filter(event: SEvent):
             if tags is None:
                 return True
@@ -44,37 +45,25 @@ class EventProcessor:
             return False
 
         gathered_events = list(filter(tag_filter, self.sink.all_events))
-
-        match return_fmt:
-            case 'str':
-                # string events
-                s = "# Past Events"
-                for idx, event in enumerate(gathered_events[:-3]):
-                    s += f"\n--- Event [{idx}] ---\n{event}"
-                s = "# Latest Events"
-                for event in gathered_events[-3:]:
-                    s += f"\n--- Event ---\n{event}"
-                s += "\nYou should pay attention to the events before take further actions."
-                return s
-
-            case 'messages':
-                messages = []
-                for event in gathered_events:
-                    if event.source == self.name:
-                        messages.append(
-                            {'role': 'assistant', 'content': event.content})
-                    else:
-                        messages.append(
-                            {'role': 'user', 'content': str(event)})
-
-                # merge adjacent message with same role
-                for i in range(len(messages)-1, 0, -1):
-                    if messages[i]['role'] == messages[i-1]['role']:
-                        messages[i -
-                                 1]['content'] += f"\n\n{messages[i]['content']}"
-                        messages.pop(i)
-
-                return messages
-            case _:
-                raise ValueError(f"Invalid return_fmt {return_fmt}")
+        if isinstance(return_dumper,str):
+            match return_dumper:
+                case 'str':
+                    return_dumper = str
+                case 'json':
+                    import json
+                    return_dumper = partial(json.dumps, ensure_ascii=False,sort_keys=False)
+                case 'identity':
+                    return_dumper = lambda x: x
+                    
+        assert callable(return_dumper), "return_dumper must be a callable'"
+        
+        messages = []
+        for event in gathered_events:
+            if event.source == self.name:
+                messages.append(
+                    {'role': 'assistant', 'content': event.content})
+            else:
+                messages.append(
+                    {'role': 'user', 'content': return_dumper(event)})
+        return messages
 
