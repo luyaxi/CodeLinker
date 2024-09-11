@@ -76,7 +76,7 @@ class CodeLinkerConfig(BaseModel):
         if os.path.exists(toml_stream):
             with open(toml_stream, 'r') as f:
                 toml_stream = f.read()
-        config = toml.load(toml_stream)
+        config = toml.loads(toml_stream)
         return CodeLinkerConfig(**config)
     
     def get_model_name(self,model_name:str=None) -> str:
