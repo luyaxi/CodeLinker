@@ -40,6 +40,8 @@ class OBJGenerator:
                     data = json.load(f)
                     if data["request"] == kwargs:
                         self.logger.info(f"Cache hit file {self.hash2files[hash_]}, return cached completions.")
+                        # remove cache to avoid duplicate
+                        self.hash2files.pop(hash_)
                         return data["response"]
                                         
 
