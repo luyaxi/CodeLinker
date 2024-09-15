@@ -25,7 +25,9 @@ class OBJGenerator:
         if config.request.use_cache:
             self.logger.warning("use_cache is enabled, loading completions from cache...")
             self.hash2files = {}
-            for file in glob.glob(os.path.join(config.request.save_completions_path, "*.json")):
+            files = glob.glob(os.path.join(config.request.save_completions_path, "*.json"))
+            files.sort(key=os.path.getmtime)
+            for file in files:
                 with open(file, 'r') as f:
                     data = json.load(f)
                     self.hash2files[hash(json.dumps(data["request"],sort_keys=True))] = file
