@@ -6,8 +6,8 @@ import datetime
 import jsonschema
 import jsonschema.exceptions
 import importlib
+import asyncio
 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Literal
 from copy import deepcopy
 from tenacity import AsyncRetrying, RetryError, stop_after_attempt
@@ -23,51 +23,47 @@ class OBJGenerator:
         self.config = config
         self.logger = logger
         self.chatcompletion_request_funcs = {}
-        self.thdpool = ThreadPoolExecutor(
-            max_workers=self.config.request.fileio_max_workers)
 
-        self._load_cache_files()
+        if self.config.request.use_cache:
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(self._load_cache_files())
         if self.config.request.save_completions:
             os.makedirs(self.config.request.save_completions_path,
                         exist_ok=True)
 
-    def _load_cache_files(self):
-        if self.config.request.use_cache:
-            self.logger.warning(
-                "use_cache is enabled, loading completions from cache...")
-            self.hash2files = {}
-            files = glob.glob(os.path.join(
-                self.config.request.save_completions_path, "*.json"))
-            files.sort(key=os.path.getmtime)
+    async def _load_cache_files(self):
+        self.logger.warning(
+            "use_cache is enabled, loading completions from cache...")
+        self.hash2files = {}
+        files = glob.glob(os.path.join(
+            self.config.request.save_completions_path, "*.json"))
+        files.sort(key=os.path.getmtime)
 
-            def load_file(file):
-                with open(file, 'r') as f:
-                    data = json.load(f)
-                    self.hash2files[hash(json.dumps(
-                        data["request"], sort_keys=True))] = file
+        def load_file(file):
+            with open(file, 'r') as f:
+                data = json.load(f)
+                self.hash2files[hash(json.dumps(
+                    data["request"], sort_keys=True))] = file
 
-            tasks = [self.thdpool.submit(load_file, file) for file in files]
-            for task in as_completed(tasks):
-                task.result()
+        tasks = [asyncio.to_thread(load_file, file) for file in files]
+        await asyncio.gather(*tasks)
 
-            self.logger.warning(
-                "Cache loaded and enabled, which may cause unexpected behavior.")
+        self.logger.warning(
+            "Cache loaded and enabled, which may cause unexpected behavior.")
 
     async def _load_cache_files_async(self, file):
         def load_file(file):
             with open(file, 'r') as f:
                 data = json.load(f)
             return data
-
-        task = self.thdpool.submit(load_file, file)
-        return task.result()
-
+        
+        return await asyncio.to_thread(load_file, file)
+    
     async def _write_cache_files_async(self, file, data):
         def write_file(file, data):
             with open(file, 'w') as f:
                 json.dump(data, f)
-        task = self.thdpool.submit(write_file, file, data)
-        task.result()
+        await asyncio.to_thread(write_file, file, data)
 
     async def _chatcompletion_request(self, *, request_lib: Literal["openai",] = None, **kwargs) -> dict:
         if self.config.request.use_cache:
