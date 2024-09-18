@@ -26,7 +26,6 @@ class CodeLinkerConfig(BaseModel):
     max_retry_times: int = 3
     
     class RequestConfig(BaseModel):
-        lib: str = 'openai'
         format: Literal[
             "chat",
             "tool_call",
@@ -35,6 +34,7 @@ class CodeLinkerConfig(BaseModel):
         schema_validation: bool = True
         dynamic_json_fix: bool = True
 
+        default_request_lib: str = 'openai'
         default_completions_model: str = "gpt-3.5-turbo-16k"
         default_embeding_model: str = "text-embedding-ada-002"
         default_timeout: int = 600

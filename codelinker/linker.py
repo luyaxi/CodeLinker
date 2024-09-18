@@ -49,7 +49,8 @@ async def request(
         messages: list = [],
         reasoning_format: StructureSchema = None,
         schema_validation: bool = None,
-        dynamic_json_fix: bool = None,):
+        dynamic_json_fix: bool = None,
+        ):
     resolve_none_object = False
     schema = return_type.json_schema()
     if schema == TypeAdapter(str).json_schema():
@@ -179,9 +180,13 @@ class CodeLinker:
         messages: list = [],
         reasoning_format: StructureSchema = None,
         schema_validation: bool = None,
-        dynamic_json_fix: bool = None) -> T:
+        dynamic_json_fix: bool = None,
+        request_lib: str = None) -> T:
         if model:
             completions_kwargs["model"] = model
+        if request_lib:
+            completions_kwargs["request_lib"] = request_lib
+            
         return await request(
             prompt=prompt,
             return_type=TypeAdapter(return_type),

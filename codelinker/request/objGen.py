@@ -6,6 +6,8 @@ import datetime
 import jsonschema
 import jsonschema.exceptions
 import importlib
+import aiofiles
+import asyncio
 
 from typing import Literal
 from copy import deepcopy
@@ -22,15 +24,24 @@ class OBJGenerator:
         self.logger = logger
         self.chatcompletion_request_funcs = {}
         
-        if config.request.use_cache:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(self._load_cache_files())
+        if self.config.request.save_completions:
+            os.makedirs(self.config.request.save_completions_path, exist_ok=True)
+            
+    async def _load_cache_files(self):
+        if self.config.request.use_cache:
             self.logger.warning("use_cache is enabled, loading completions from cache...")
             self.hash2files = {}
-            files = glob.glob(os.path.join(config.request.save_completions_path, "*.json"))
+            files = glob.glob(os.path.join(self.config.request.save_completions_path, "*.json"))
             files.sort(key=os.path.getmtime)
-            for file in files:
-                with open(file, 'r') as f:
-                    data = json.load(f)
+            
+            async def load_file(file):
+                async with aiofiles.open(file, 'r') as f:
+                    data = json.loads(await f.read())
                     self.hash2files[hash(json.dumps(data["request"],sort_keys=True))] = file
+            tasks = [load_file(file) for file in files]
+            await asyncio.gather(*tasks)
             self.logger.warning("Cache loaded and enabled, which may cause unexpected behavior.")
 
     async def _chatcompletion_request(self, *, request_lib: Literal["openai",] = None, **kwargs) -> dict:
@@ -38,31 +49,32 @@ class OBJGenerator:
             hash_ = hash(json.dumps(kwargs,sort_keys=True))
             self.logger.debug(f"Request hash: {hash_}")
             if hash_ in self.hash2files:
-                with open(self.hash2files[hash_], 'r') as f:
-                    data = json.load(f)
+                async with aiofiles.open(self.hash2files[hash_], 'r') as f:
+                    data = json.loads(await f.read())
                     if data["request"] == kwargs:
                         self.logger.info(f"Cache hit file {self.hash2files[hash_]}, return cached completions.")
                         # remove cache to avoid duplicate
                         self.hash2files.pop(hash_)
                         return data["response"]
-                                        
 
-        request_lib = request_lib if request_lib is not None else self.config.request.lib
+        request_lib = request_lib if request_lib is not None else self.config.request.default_request_lib
         response = await self._get_chatcompletion_request_func(request_lib)(config=self.config,**kwargs)
-
+        
         
         if self.config.request.save_completions:
-            os.makedirs(self.config.request.save_completions_path, exist_ok=True)
-            with open(os.path.join(self.config.request.save_completions_path,
+            async with aiofiles.open(os.path.join(self.config.request.save_completions_path,
                                     datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S-%f")+f"{uuid.uuid4().hex}.json"
                                     ), 'w') as f:
-                json.dump({
+                data = json.dumps({
                     "request": kwargs,
                     "response": response
-                    }, f, indent=4)
-        
+                    },)
+                await f.write(data)
 
         return response
+    
+    def register_request_lib(self, request_type: str, request_func):
+        self.chatcompletion_request_funcs[request_type] = request_func
 
     def _get_chatcompletion_request_func(self, request_type: str):
         if request_type not in self.chatcompletion_request_funcs:
