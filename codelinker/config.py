@@ -50,7 +50,8 @@ class CodeLinkerConfig(BaseModel):
         save_completions: bool = False
         # default to save in current working directory 
         save_completions_path: str = os.path.join(os.getcwd(),"cache","completions")
-
+        fileio_max_workers: int = 16
+        
     request: RequestConfig = RequestConfig()
     
     class ExectionConfig(BaseModel):
