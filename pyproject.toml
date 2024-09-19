@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "codelinker"
-version = "0.3.16"
+version = "0.3.17"
 description = "A tool to link the code with large language models."
 authors = ["luyaxi <luyaxi@live.com>"]
 readme = "README.md"
@@ -8,10 +8,11 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = ">=3.10,<4.0"
 openai = ">=1.16.2,<2.0"
-tenacity = ">=8.2.3,<9.0"
+tenacity = ">=8.2.3,<10.0"
 jsonschema = ">=4.21.1,<5.0"
 toml = ">=0.10.2,<1.0"
 tiktoken = ">=0.7.0,<1.0"
+pydantic = ">=2.6,<2.9"
 
 
 [build-system]
