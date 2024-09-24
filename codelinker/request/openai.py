@@ -71,10 +71,6 @@ async def chatcompletion_request(*, config: CodeLinkerConfig, **kwargs):
 
     completions: ChatCompletion = await client.chat.completions.create(**chatcompletion_kwargs)
     response = completions.model_dump()
-    if response["choices"][0]["finish_reason"] == "length":
-        raise BadRequestError(
-            message="maximum context length exceeded", response=None, body=None
-        )
 
     return response
 

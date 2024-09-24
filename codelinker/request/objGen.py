@@ -80,6 +80,9 @@ class OBJGenerator:
 
         request_lib = request_lib if request_lib is not None else self.config.request.default_request_lib
         response = await self._get_chatcompletion_request_func(request_lib)(config=self.config, **kwargs)
+        
+        if response["choices"][0]["finish_reason"] == "length":
+            self.logger.debug("Warning: a completion is truncated due to length limit.")
 
         if self.config.request.save_completions:
             await self._write_cache_files_async(
