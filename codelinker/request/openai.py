@@ -33,7 +33,7 @@ async def chatcompletion_request(*, config: CodeLinkerConfig, **kwargs):
     model_name = config.get_model_name(kwargs.pop("model", None))
     chatcompletion_kwargs = config.get_apiconfig_by_model(model_name)
 
-    request_timeout = kwargs.pop("request_timeout", None)
+    request_timeout = kwargs.pop("request_timeout", config.request.default_timeout)
     if hasattr(chatcompletion_kwargs, "azure_endpoint"):
         azure_endpoint = getattr(chatcompletion_kwargs, "azure_endpoint", None)
         api_version = getattr(chatcompletion_kwargs, "api_version", None)
@@ -83,7 +83,7 @@ async def embedding_request(config: CodeLinkerConfig, text: str, **kwargs):
     model_name = config.get_model_name(kwargs.pop("model", config.request.default_embeding_model))
     req_kwargs = config.get_apiconfig_by_model(model_name)
     
-    request_timeout = kwargs.pop("request_timeout", None)
+    request_timeout = kwargs.pop("request_timeout", config.request.default_timeout)
     if hasattr(req_kwargs, "azure_endpoint"):
         azure_endpoint = getattr(req_kwargs, "azure_endpoint", None)
         api_version = getattr(req_kwargs, "api_version", None)
