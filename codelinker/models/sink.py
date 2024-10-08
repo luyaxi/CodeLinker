@@ -6,7 +6,7 @@ from typing import Callable, Any, List
 class ChannelTag(str):
     """Channel tag is used to identify the channel."""
 
-    def __get_pydantic_core_schema__(self):
+    def __get_pydantic_core_schema__(self,*args):
         return str_schema()
     
 
