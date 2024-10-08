@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "codelinker"
-version = "0.3.20"
+version = "0.3.21"
 description = "A tool to link the code with large language models."
 authors = ["luyaxi <luyaxi@live.com>"]
 readme = "README.md"
