@@ -159,7 +159,7 @@ class CodeLinker:
         else:
             self.logger = logger
 
-        self.objGen = OBJGenerator(config, self.logger)
+        self.objGen = OBJGenerator(self.config, self.logger)
         self.pool = ThreadPoolExecutor(
             thread_name_prefix="CodeLinkerHandlerThread")
 
