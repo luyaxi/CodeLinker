@@ -1,3 +1,4 @@
+import os
 import logging
 import inspect
 import asyncio
@@ -147,8 +148,12 @@ class CodeLinker:
 
     '''
 
-    def __init__(self, config: CodeLinkerConfig, logger: logging.Logger = None):
-        self.config = config
+    def __init__(self, config: CodeLinkerConfig|str|os.PathLike, logger: logging.Logger = None):
+        if isinstance(config,CodeLinkerConfig):
+            self.config = config
+        else:
+            self.config = CodeLinkerConfig.from_toml(config)
+            
         if logger is None:
             self.logger = logging.getLogger()
         else:
