@@ -137,12 +137,14 @@ async def request(
 class CodeLinker:
     '''CodeLinker manage the configuration and the handler of the smart functions.
 
-    # Usage
+    ### Initialization
     ```python
-    cl = CodeLinker(config)
-    @cl.smartFunc()
-    def hello_world() -> HelloWorldSchema:
-        """Say hello to the world"""
+    cl = CodeLinker("path/to/config.toml")
+    ```
+    
+    ### Usage
+    ```python
+    ret = await cl.exec("Hello", return_type=str)
     ```
 
     '''
