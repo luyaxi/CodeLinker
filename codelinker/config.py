@@ -49,16 +49,10 @@ class CodeLinkerConfig(BaseModel):
         use_cache: bool = False
         save_completions: bool = False
         # default to save in current working directory 
-        save_completions_path: str = os.path.join(os.getcwd(),"cache","completions")
+        save_completions_path: str = os.path.join(os.getcwd(),".cache","completions")
 
         
     request: RequestConfig = RequestConfig()
-    
-    class ExectionConfig(BaseModel):
-        max_ai_functions_tokens: int = 12800
-        max_message_tokens: int = 15872
-
-    execution: ExectionConfig = ExectionConfig()
 
     class VisionConfig(BaseModel):
         class ImageModalConfig(BaseModel):

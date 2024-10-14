@@ -15,7 +15,6 @@ from logging import Logger
 
 from ..models import StructuredRet, StructureSchema
 from ..config import CodeLinkerConfig
-from ..utils import clip_text
 
 
 class OBJGenerator:
@@ -323,7 +322,7 @@ class OBJGenerator:
                 },
                 {
                     "role": "user",
-                    "content": clip_text(f"""Generate Content with Correct Schema.\n# Error String\n{s}\n# Error Message\n{error_message[-1024:]}""", max_tokens=self.config.execution.max_message_tokens, clip_end=True)[0]
+                    "content": f"""Generate Content with Correct Schema.\n# Error String\n{s}\n# Error Message\n{error_message[-1024:]}"""
                 }],
             schemas=StructureSchema(**schema),
             schema_validation=True,

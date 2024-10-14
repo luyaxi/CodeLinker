@@ -13,7 +13,6 @@ from copy import deepcopy
 from .config import CodeLinkerConfig
 from .request import OBJGenerator
 from .models import SmartFuncLabel, StructureSchema, StructuredRet
-from .utils import clip_text
 
 T = TypeVar("T")
 
@@ -289,10 +288,7 @@ class CodeLinker:
                 for k, v in kwargs.items():
                     kwargs[k] = str(v)
                     
-                prompt = clip_text(
-                    text=label.prompt.format(**kwargs),
-                    max_tokens=self.config.execution.max_ai_functions_tokens,
-                    clip_end=True)[0]
+                prompt = label.prompt.format(**kwargs)
                 
                 return await request(
                     prompt=prompt,
