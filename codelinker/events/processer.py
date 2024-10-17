@@ -31,7 +31,7 @@ class EventProcessor:
     def wait(self, tags: ChannelTag | Iterable[ChannelTag]):
         return self.sink.wait(tags)
     
-    def get(self,tag: ChannelTag, return_dumper: Callable|Literal['str','json','identity'] = 'str'):
+    def get(self,tag: ChannelTag) -> SEvent:
         """Get last event in the channel."""
         def tag_filter(event: SEvent):
             if tag is None:
@@ -43,26 +43,10 @@ class EventProcessor:
             if tag in event.tags:
                 return True
             return False
-        
 
-        gathered_events = list(filter(tag_filter, self.sink.all_events))
-        if isinstance(return_dumper,str):
-            match return_dumper:
-                case 'str':
-                    return_dumper = str
-                case 'json':
-                    import json
-                    return_dumper = partial(json.dumps, ensure_ascii=False,sort_keys=False)
-                case 'identity':
-                    return_dumper = lambda x: x
-                    
-        assert callable(return_dumper), "return_dumper must be a callable'"
-        
+        gathered_events = list(filter(tag_filter, self.sink.all_events))        
         event = gathered_events[-1]
-        if event.source == self.name:
-            return  {'role': 'assistant', 'content': event.content}
-        else:
-            return {'role': 'user', 'content': return_dumper(event)}
+        return event
 
 
     def gather(self, tags: ChannelTag | Iterable[ChannelTag] | None = None, return_dumper: Callable|Literal['str','json','identity'] = 'str') -> Iterable[dict]:
