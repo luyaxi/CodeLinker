@@ -31,7 +31,7 @@ class EventProcessor:
     def wait(self, tags: ChannelTag | Iterable[ChannelTag]):
         return self.sink.wait(tags)
     
-    def get(self,tag: ChannelTag) -> SEvent:
+    def get(self,tag: ChannelTag) -> SEvent|None:
         """Get last event in the channel."""
         def tag_filter(event: SEvent):
             if tag is None:
@@ -44,9 +44,12 @@ class EventProcessor:
                 return True
             return False
 
-        gathered_events = list(filter(tag_filter, self.sink.all_events))        
-        event = gathered_events[-1]
-        return event
+        gathered_events = list(filter(tag_filter, self.sink.all_events))   
+        if len(gathered_events) > 0:
+            event = gathered_events[-1]
+            return event
+        else:
+            return None
 
 
     def gather(self, tags: ChannelTag | Iterable[ChannelTag] | None = None, return_dumper: Callable|Literal['str','json','identity'] = 'str') -> Iterable[dict]:
