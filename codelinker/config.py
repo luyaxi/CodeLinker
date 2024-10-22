@@ -8,6 +8,7 @@ The module initializes the global configuration.
 
 
 import os
+import random
 from typing import Literal
 from pydantic import BaseModel
 from copy import deepcopy
@@ -96,7 +97,8 @@ class CodeLinkerConfig(BaseModel):
             dict: Dictionary containing the fetched API configuration.
         """
         normalized_model_name = self.get_model_name(model_name)
-        apiconfig = deepcopy(self.api_keys[normalized_model_name][0])
-        self.api_keys[normalized_model_name].append(
-            self.api_keys[normalized_model_name].pop(0))
+        apiconfig = deepcopy(random.choice(self.api_keys[normalized_model_name]))
+        # apiconfig = deepcopy(self.api_keys[normalized_model_name][0])
+        # self.api_keys[normalized_model_name].append(
+        #     self.api_keys[normalized_model_name].pop(0))
         return apiconfig

@@ -12,6 +12,7 @@ from typing import Literal
 from copy import deepcopy
 from tenacity import AsyncRetrying, RetryError, stop_after_attempt
 from logging import Logger
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from ..models import StructuredRet, StructureSchema
 from ..config import CodeLinkerConfig
@@ -22,18 +23,17 @@ class OBJGenerator:
         self.config = config
         self.logger = logger
         self.chatcompletion_request_funcs = {}
+        self.hash2files = {}
 
         if self.config.request.use_cache:
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(self._load_cache_files())
+            self._load_cache_files()
         if self.config.request.save_completions:
             os.makedirs(self.config.request.save_completions_path,
                         exist_ok=True)
 
-    async def _load_cache_files(self):
+    def _load_cache_files(self):
         self.logger.warning(
             "use_cache is enabled, loading completions from cache...")
-        self.hash2files = {}
         files = glob.glob(os.path.join(
             self.config.request.save_completions_path, "*.json"))
         files.sort(key=os.path.getmtime)
@@ -44,8 +44,10 @@ class OBJGenerator:
                 self.hash2files[hash(json.dumps(
                     data["request"], sort_keys=True))] = file
 
-        tasks = [asyncio.to_thread(load_file, file) for file in files]
-        await asyncio.gather(*tasks)
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(load_file, file) for file in files]
+            for f in as_completed(futures):
+                f.result()
 
         self.logger.warning(
             "Cache loaded and enabled, which may cause unexpected behavior.")
